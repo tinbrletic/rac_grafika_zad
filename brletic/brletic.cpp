@@ -29,8 +29,6 @@
 const unsigned int SCR_WIDTH = 1320;
 const unsigned int SCR_HEIGHT = 768;
 
-constexpr const glm::vec3 dimgrey{105. / 255, 105. / 255, 105. / 255};
-constexpr const glm::vec3 coral{255. / 255, 127. / 255, 80. / 255};
 constexpr const glm::vec3 darkOrange{255. / 255, 140. / 255, 0. / 255};
 
 #include <algorithm>
@@ -103,7 +101,6 @@ int main()
 
     Shader sphere_shader({{GL_VERTEX_SHADER, sphere_vs}, {GL_FRAGMENT_SHADER, sphere_fs}});
 
-    // Generate vertices and indices
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
     std::vector<unsigned int> indices;
@@ -116,13 +113,11 @@ int main()
         float V = i / (float) numStacks;
         float phi = V * glm::pi<float>();
 
-        // Loop through slices
         for (unsigned int j = 0; j <= numSlices; ++j)
         {
             float U = j / (float) numSlices;
             float theta = U * (glm::pi<float>() * 2);
 
-            // Use spherical coordinates to calculate the positions.
             float x = cos(theta) * sin(phi);
             float y = cos(phi);
             float z = sin(theta) * sin(phi);
@@ -165,44 +160,29 @@ int main()
     sphere_layout.addFloat(3);
     sphere_va.addBuffer(sphere_vb, sphere_layout);
 
-    float scaleFactor = 0.3f;// Adjust this value to change the size of the sphere
+    float scaleFactor = 0.3f;
     glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor));
 
-    // Box
+    // Plane
     const std::string t_vs = shaders_folder + "vert_p.glsl";
     const std::string t_fs = shaders_folder + "frag_p.glsl";
 
     Shader quad_shader({{GL_VERTEX_SHADER, t_vs}, {GL_FRAGMENT_SHADER, t_fs}});
 
-    //Quad quad(darkOrange, 5);
-    //QuadRenderer quad_renderer(quad);
+    Quad quad(darkOrange, 6);
+    QuadRenderer quad_renderer(quad);
 
-    //VertexBuffer quad_vb(quad.vertices);
-    //VertexBufferLayout quad_layout;
-    //quad_layout.addFloat(3);
-    //quad_layout.addFloat(3);
-    //quad_layout.addFloat(2);
-    //quad_layout.addFloat(3);
-
-    //IndexBuffer quad_ib(quad.indices);
-    //VertexArray quad_va;
-    //quad_va.addBuffer(quad_vb, quad_layout);
-
-    std::vector<glm::vec3> quad_vertices = {
-            glm::vec3(-3.0f, -3.0f, 0.0f), 
-            glm::vec3(3.0f, -3.0f, 0.0f),
-            glm::vec3(3.0f, 3.0f, 0.0f), 
-            glm::vec3(-3.0f, 3.0f, 0.0f)};
-
-    std::vector<unsigned int> quad_indices = {0, 1, 2, 2, 3, 0};
-
-    VertexBuffer quad_vb(quad_vertices);
+    VertexBuffer quad_vb(quad.vertices);
     VertexBufferLayout quad_layout;
     quad_layout.addFloat(3);// position
+    quad_layout.addFloat(3);// color
+    quad_layout.addFloat(2);// tex_coo
+    quad_layout.addFloat(3);// normal
+    quad_layout.addFloat(3);// tangent
 
-    IndexBuffer quad_ib(quad_indices);
     VertexArray quad_va;
     quad_va.addBuffer(quad_vb, quad_layout);
+    IndexBuffer quad_ib(quad.indices);
 
 
     // Point light position
@@ -259,22 +239,23 @@ int main()
         quad_shader.setMat4("view", view);
         quad_shader.setMat4("projection", projection);
 
-        // point light 1
+        // point light
         quad_shader.setVec3("pointLight.position", rotatedLightPos);
-        quad_shader.setVec3("pointLight.ambient", 1.0f, 1.0f, 1.0f);
-        quad_shader.setVec3("pointLight.diffuse", 0.5f, 0.5f, 0.5f);
-        quad_shader.setVec3("pointLight.specular", 0.7f, 0.7f, 0.7f);
+        quad_shader.setVec3("pointLight.ambient", 0.5f, 0.5f, 0.5f);
+        quad_shader.setVec3("pointLight.diffuse", 1.0f, 1.0f, 1.0f);
+        quad_shader.setVec3("pointLight.specular", 3.0f, 3.0f, 3.0f);
         quad_shader.setFloat("pointLight.constant", 1.0f);
         quad_shader.setFloat("pointLight.linear", 0.09f);
         quad_shader.setFloat("pointLight.quadratic", 0.032f);
 
-        quad_shader.setFloat("material.shininess", 50.f);
+        quad_shader.setFloat("material.shininess", 32.0f);
         quad_shader.setVec3("viewPos", view_position);
 
         quad_shader.setMat4("transform", transform);
 
-        quad_shader.setInt("material.diffuse", 0);
-        quad_shader.setInt("material.normal_map", 1);
+        quad_shader.setInt("material.diffuse", 0.0f);
+        quad_shader.setInt("material.normal_map", 1.0f);
+
 
         glm::mat4 model = glm::mat4(1.0f);
         quad_shader.setMat4("model", model);
@@ -284,7 +265,7 @@ int main()
 
 
         // Render Spheres at Grid Positions
-        sphere_shader.bind();
+        sphere_shader.Shader::bind();
         sphere_shader.setMat4("view", view);
         sphere_shader.setMat4("projection", projection);
         sphere_shader.setVec3("lightPos", rotatedLightPos);
@@ -293,7 +274,7 @@ int main()
         for (size_t i = 0; i < sphere_positions.size(); ++i)
         {
             // Update the y position of the sphere with some randomness
-            velocities[i] += (std::rand() % 1000 / 1000.0f - 0.5f) * 0.01f;
+            velocities[i] += (std::rand() % 1000 / 1000.0f - 0.5f) * 0.001f;
             initial_y_positions[i] += velocities[i];
 
             // Keep y position within bounds
